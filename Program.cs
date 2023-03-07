@@ -1,38 +1,14 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using System.Windows.Forms;
-using System.Diagnostics;
-using System.Data;
-using Blackjack.Comms;
 
-
-namespace Blackjack
+namespace test
 {
-    static class Program
+    class Program
     {
-        /// <summary>
-        ///  The main entry point for the application.
-        /// </summary>
-        [STAThread]
-        static void Main()
+        static void Main(string[] args)
         {
-            //Settings settings = new Settings();
-            Console.Write("Hello World");
-            Application.SetHighDpiMode(HighDpiMode.SystemAware);
-            Application.EnableVisualStyles();
-            Application.SetCompatibleTextRenderingDefault(false);
-            Communication_server server = new();
-            Communication_client com = new();
-            while (true)
-            {
-
-            }
-//Application.Run(new Start_window());
-//Application.Run(new Game_window(settings));
-
-
+            Console.WriteLine("Hello World!");
+            Game game = new(1, 2);
         }
     }
 
@@ -40,11 +16,13 @@ namespace Blackjack
     {
         readonly Player[] players;
         readonly Deck deck;
+        public ConsoleKeyInfo keyInfo;
 
         public Game(int amount_player, int decks)
         {
             players = this.Player_creater(amount_player);
             deck = new Deck(decks);
+            this.Loop();
         }
 
         private Player[] Player_creater(int amount)
@@ -65,24 +43,43 @@ namespace Blackjack
         {
             int winner_sum = 0;
             string winner = "";
+            bool all_bust = true;
 
-            foreach(Player i in players)
+            foreach (Player i in players)
             {
-                if(i.Sum() > winner_sum && i.Sum() < 22)
+                if (i.Sum() > winner_sum && i.Sum() < 22)
                 {
                     winner_sum = i.Sum();
                     winner = i.name;
                 }
+
+                if (i.Sum() < 22)
+                {
+                    all_bust = false;
+                }
+            }
+
+            if (all_bust)
+            {
+                return (players[^1].name);
             }
 
             return (winner);
+        }
+
+        private void Print_hands()
+        {
+            foreach (Player i in this.players)
+            {
+                i.Print_hand();
+            }
         }
 
         private void Start()
         {
             for (int j = 0; j < 2; j++)
             {
-                foreach (Player i in players)
+                foreach (Player i in this.players)
                 {
                     i.Take_card(deck);
                 }
@@ -95,12 +92,13 @@ namespace Blackjack
             while (loop)
             {
                 loop = false;
-                foreach(Player i in players)
+                this.Print_hands();
+                foreach (Player i in this.players)
                 {
                     if (i.wants)
                     {
-                        i.Wants_card(deck);
-                        loop = true; 
+                        i.Wants_card(this.deck, keyInfo);
+                        loop = true;
                     }
                 }
             }
@@ -109,13 +107,14 @@ namespace Blackjack
         private void End()
         {
             //Print winner name on screen using Check_winner()
+            Console.Write(this.Check_winner());
         }
 
-        public void Loop()
+        private void Loop()
         {
-            Start();
-            Mid();
-            End();
+            this.Start();
+            this.Mid();
+            this.End();
         }
 
     }
@@ -135,9 +134,9 @@ namespace Blackjack
 
         public void SwitchAce()
         {
-            if (realValue == 11)
+            if (this.value == 1)
             {
-                realValue = 1;
+                this.realValue = (this.realValue == 1) ? 11 : 1;
             }
         }
     }
@@ -145,32 +144,49 @@ namespace Blackjack
     public class Deck
     {
         public List<Card> deck = new();
+        private Random rand = new();
 
         public Deck(int amount)
         {
-            deck = DeckCreater(amount);
+            this.deck = DeckCreater(amount);
+            this.Shuffle();
         }
 
         public static List<Card> DeckCreater(int amount)
         {
             var temp_deck = new List<Card>();
-            string[] colors = new string[] {"Heart", "Club", "Diamond", "Spade"};
+            string[] colors = new string[] { "Heart", "Club", "Diamond", "Spade" };
 
             //Appends all cards to array
             for (int h = 0; h < amount; h++)
-            foreach (string i in colors) {
-                temp_deck.Add(new Card(i, 1, 11));
-                for (int j = 2; j < 13; j++)
+                foreach (string i in colors)
                 {
-                    temp_deck.Add(new Card(i, j, j));
-                    if (j > 10)
+                    temp_deck.Add(new Card(i, 1, 11));
+                    for (int j = 2; j < 13; j++)
                     {
-                        temp_deck.Add(new Card(i, j, 10));
+                        if (j > 10)
+                        {
+                            temp_deck.Add(new Card(i, j, 10));
+                        }
+                        temp_deck.Add(new Card(i, j, j));
                     }
                 }
-            }
             //Return array of all cards
-            return(temp_deck);
+            return (temp_deck);
+        }
+
+        private void Shuffle()
+        {
+            for (int i = 0; i < 1; i++)
+            {
+                for (int j = this.deck.Count - 1; j > 0; j--)
+                {
+                    int k = rand.Next(j + 1);
+                    Card temp = this.deck[j];
+                    this.deck[j] = this.deck[k];
+                    this.deck[k] = temp;
+                }
+            }
         }
 
         public Card GiveCard()
@@ -178,7 +194,7 @@ namespace Blackjack
             Card temp = deck[0];
             deck.RemoveAt(0);
 
-            return(temp);
+            return (temp);
         }
     }
 
@@ -193,28 +209,47 @@ namespace Blackjack
             name = _name;
         }
 
+        public void Print_hand()
+        {
+            Console.WriteLine(this.name);
+            foreach (Card i in this.hand)
+            {
+                Console.WriteLine(i.value);
+            }
+            Console.WriteLine(this.Sum());
+            Console.WriteLine("");
+        }
+
         public void Take_card(Deck deck)
         {
             //Adds card to hand
-            hand.Add(deck.GiveCard());
+            this.hand.Add(deck.GiveCard());
+            this.Check_ace();
         }
 
-        public void Wants_card(Deck deck)
-        {/*
-            if () //Input from button
+        public virtual void Wants_card(Deck deck, ConsoleKeyInfo keyInfo)
+        {
+            Console.WriteLine("");
+            Console.WriteLine("{0}", this.name);
+            Console.WriteLine("Do you want a card? (y/n)");
+
+            keyInfo = Console.ReadKey();
+
+            if (keyInfo.KeyChar == 'y') //Input from button
             {
                 this.Take_card(deck);
-            } else if ()
+            }
+            else if (keyInfo.KeyChar == 'n')
             {
                 this.wants = false;
-            }*/
+            }
         }
 
         private void Check_ace()
         {
             if (this.Sum() > 22)
             {
-                foreach(Card i in hand)
+                foreach (Card i in this.hand)
                 {
                     if (i.realValue == 11)
                     {
@@ -228,7 +263,7 @@ namespace Blackjack
         public int Sum()
         {
             int output = 0;
-            foreach(Card i in hand)
+            foreach (Card i in hand)
             {
                 output += i.realValue;
             }
@@ -243,16 +278,16 @@ namespace Blackjack
             name = _name;
         }
 
-        public new void Wants_card(Deck deck)
+        public override void Wants_card(Deck deck, ConsoleKeyInfo notUsed)
         {
-            if(this.Sum() < 17)
+            if (this.Sum() < 17)
             {
                 this.Take_card(deck);
-            } else
+            }
+            else
             {
                 this.wants = false;
             }
         }
     }
-
 }
