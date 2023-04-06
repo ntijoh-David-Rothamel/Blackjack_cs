@@ -1,32 +1,15 @@
 using System;
 using System.Collections.Generic;
-using Blackjack.Comms;
-using System.Runtime.InteropServices;
 
-namespace Blackjack
+namespace test
 {
     class Program
     {
-
         static void Main(string[] args)
         {
-            
-
-            Program.AllocConsole();
+            Console.WriteLine("Hello World!");
             Game game = new(1, 2);
-            while (true)
-            {
-
-            }
         }
-
-        private void Form1_Load(object sender, EventArgs e)
-        {
-            AllocConsole();
-        }
-        [DllImport("kernel32.dll", SetLastError = true)]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        static extern bool AllocConsole();
     }
 
     public class Game
@@ -34,16 +17,12 @@ namespace Blackjack
         readonly Player[] players;
         readonly Deck deck;
         public ConsoleKeyInfo keyInfo;
-        public Communication_client com = new();
-        public Communication_server server;
+
         public Game(int amount_player, int decks)
         {
-            server = new(com);
             players = this.Player_creater(amount_player);
             deck = new Deck(decks);
             this.Loop();
-            String temp = server.AskForInput();
-            Console.WriteLine(temp);
         }
 
         private Player[] Player_creater(int amount)
@@ -52,7 +31,7 @@ namespace Blackjack
 
             for (int i = 0; i < (temp.Length - 1); i++)
             {
-                temp[i] = new Player("Player " + (i + 1), this.server);
+                temp[i] = new Player("Player " + (i + 1));
             }
 
             temp[^1] = new Ai("AI");
@@ -224,13 +203,6 @@ namespace Blackjack
         public List<Card> hand = new List<Card>();
         public string name;
         public bool wants = true;
-        private Communication_server server = null;
-
-        public Player(string _name, Communication_server server_)
-        {
-            name = _name;
-            server = server_;
-        }
 
         public Player(string _name)
         {
@@ -260,11 +232,6 @@ namespace Blackjack
             Console.WriteLine("");
             Console.WriteLine("{0}", this.name);
             Console.WriteLine("Do you want a card? (y/n)");
-            //Rewrite so this calls on server to ask client for input, 
-            //Client gives server response
-            //Server gives response to this
-
-            String input = this.server.AskForInput();
 
             keyInfo = Console.ReadKey();
 
@@ -324,7 +291,3 @@ namespace Blackjack
         }
     }
 }
-
-
-
-
