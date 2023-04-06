@@ -7,13 +7,21 @@ using System.Net;
 using System.Net.Sockets;
 using System.Diagnostics;
 using System.Data;
+using Blackjack;
 
 namespace Blackjack.Comms
 {
     public class Communication_server
     {
-        public Communication_server()
+        //Får jag göra så?
+        public Socket handler_ = null;
+        public Communication_client Client = null;
+        public bool read_response = false;
+        public String response = null;
+
+        public Communication_server(Communication_client _Client)
         {
+            Client = _Client;
             this.Server("");
         }
 
@@ -40,31 +48,64 @@ namespace Blackjack.Comms
             listener.Listen(100);
 
             var handler = await listener.AcceptAsync();
+            handler_ = handler;
+
+            this.ServerSetUpLoop();
+        }
+
+        private async void ServerSetUpLoop()
+        {
             while (true)
             {
                 // Receive message.
                 var buffer = new byte[1_024];
-                var received = await handler.ReceiveAsync(buffer, SocketFlags.None);
-                var response = Encoding.UTF8.GetString(buffer, 0, received);
+                var received = await handler_.ReceiveAsync(buffer, SocketFlags.None);
+                response = Encoding.UTF8.GetString(buffer, 0, received);
 
                 var eom = "<|EOM|>";
-                if (response.IndexOf(eom) > -1 /* is end of message */)
+                if (response.IndexOf("Hello") > -1 /* is end of message */)
                 {
-                    Debug.WriteLine(
+                    Console.WriteLine(
                         $"Socket server received message: \"{response.Replace(eom, "")}\"");
 
                     var ackMessage = "<|ACK|>";
                     var echoBytes = Encoding.UTF8.GetBytes(ackMessage);
-                    await handler.SendAsync(echoBytes, 0);
-                    Debug.WriteLine(
+                    await handler_.SendAsync(echoBytes, 0);
+                    Console.WriteLine(
                         $"Socket server sent acknowledgment: \"{ackMessage}\"");
 
                     break;
+                }
+
+                if (response.IndexOf("client") > -1)
+                {
+                    read_response = true;
                 }
                 // Sample output:
                 //    Socket server received message: "Hi friends 👋!"
                 //    Socket server sent acknowledgment: "<|ACK|>"
             }
+        }
+
+        private async void SendMessage(String message)
+        {
+            var echoBytes = Encoding.UTF8.GetBytes(message);
+            await handler_.SendAsync(echoBytes, 0);
+            Console.WriteLine(
+                $"Socket server sent message: \"{message}\"");
+        }
+
+        public String AskForInput()
+        {
+            String input = "";
+            this.SendMessage("Do you want a card ? (y / n)");
+            Client.Send_message();
+            //Code for response
+            if (read_response)
+            {
+                input = response;
+            }
+            return input;
         }
     }
 }
