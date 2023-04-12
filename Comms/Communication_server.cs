@@ -63,21 +63,20 @@ namespace Blackjack.Comms
                 response = Encoding.UTF8.GetString(buffer, 0, received);
 
                 var eom = "<|EOM|>";
-                if (response.IndexOf("Hello") > -1 /* is end of message */)
+                if (response.IndexOf("") > -1 /* is end of message */)
                 {
-                    Console.WriteLine(
-                        $"Socket server received message: \"{response.Replace(eom, "")}\"");
+                    //Console.WriteLine(
+                    //    $"Socket server received message: \"{response.Replace(eom, "")}\"");
 
                     var ackMessage = "<|ACK|>";
                     var echoBytes = Encoding.UTF8.GetBytes(ackMessage);
                     await handler_.SendAsync(echoBytes, 0);
-                    Console.WriteLine(
-                        $"Socket server sent acknowledgment: \"{ackMessage}\"");
+                    //Console.WriteLine(
+                    //    $"Socket server sent acknowledgment: \"{ackMessage}\"");
 
-                    break;
                 }
 
-                if (response.IndexOf("client") > -1)
+                if ((response.IndexOf("y") > -1) || (response.IndexOf("n") > -1))
                 {
                     read_response = true;
                 }
@@ -91,21 +90,16 @@ namespace Blackjack.Comms
         {
             var echoBytes = Encoding.UTF8.GetBytes(message);
             await handler_.SendAsync(echoBytes, 0);
-            Console.WriteLine(
-                $"Socket server sent message: \"{message}\"");
+            //Console.WriteLine(
+            //    $"Socket server sent message: \"{message}\"");
         }
 
-        public String AskForInput()
+        public String AskForInput(String input)
         {
-            String input = "";
-            this.SendMessage("Do you want a card ? (y / n)");
+            this.SendMessage(input);
             Client.Send_message();
-            //Code for response
-            if (read_response)
-            {
-                input = response;
-            }
-            return input;
+            //Console.WriteLine("Repsonse is: " + response);
+            return response;
         }
     }
 }

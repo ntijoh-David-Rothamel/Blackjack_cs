@@ -42,8 +42,6 @@ namespace Blackjack
             players = this.Player_creater(amount_player);
             deck = new Deck(decks);
             this.Loop();
-            String temp = server.AskForInput();
-            Console.WriteLine(temp);
         }
 
         private Player[] Player_creater(int amount)
@@ -116,9 +114,9 @@ namespace Blackjack
                 this.Print_hands();
                 foreach (Player i in this.players)
                 {
+                    i.Wants_card(this.deck);
                     if (i.wants)
                     {
-                        i.Wants_card(this.deck, keyInfo);
                         loop = true;
                     }
                 }
@@ -144,22 +142,24 @@ namespace Blackjack
     {
         public string color;
         public int value;
-        public int realValue;
+        public int blackjackValue;
 
-        public Card(string _color, int _value, int _realValue)
+        public Card(string _color, int _value, int _blackjackValue)
         {
             color = _color;
             value = _value;
-            realValue = _realValue;
+            blackjackValue = _blackjackValue;
         }
 
         public void SwitchAce()
         {
             if (this.value == 1)
             {
-                this.realValue = (this.realValue == 1) ? 11 : 1;
+                this.blackjackValue = (this.blackjackValue == 1) ? 11 : 1;
             }
         }
+
+        
     }
 
     public class Deck
@@ -188,6 +188,7 @@ namespace Blackjack
                         if (j > 10)
                         {
                             temp_deck.Add(new Card(i, j, 10));
+                            continue;
                         }
                         temp_deck.Add(new Card(i, j, j));
                     }
@@ -254,29 +255,26 @@ namespace Blackjack
             this.hand.Add(deck.GiveCard());
             this.Check_ace();
         }
-
-        public virtual void Wants_card(Deck deck, ConsoleKeyInfo keyInfo)
+        //Rewrite so this calls on server to ask client for input, 
+        //Client gives server response
+        //Server gives response to this
+        public virtual void Wants_card(Deck deck)
         {
-            Console.WriteLine("");
-            Console.WriteLine("{0}", this.name);
-            Console.WriteLine("Do you want a card? (y/n)");
-            //Rewrite so this calls on server to ask client for input, 
-            //Client gives server response
-            //Server gives response to this
-
-            String input = this.server.AskForInput();
-
-            keyInfo = Console.ReadKey();
-
-            if (keyInfo.KeyChar == 'y') //Input from button
+            if (this.Sum() < 21)
             {
-                this.Take_card(deck);
-            }
-            else if (keyInfo.KeyChar == 'n')
-            {
-                this.wants = false;
+                String confirmation = this.server.AskForInput("Do you want a card? (y/n)");
+
+                if (confirmation == "y")
+                {
+                    this.Take_card(deck);
+                }
+                else
+                {
+                    wants = false;
+                }
             }
         }
+
 
         private void Check_ace()
         {
@@ -284,7 +282,7 @@ namespace Blackjack
             {
                 foreach (Card i in this.hand)
                 {
-                    if (i.realValue == 11)
+                    if (i.blackjackValue == 11)
                     {
                         i.SwitchAce();
                         break;
@@ -298,7 +296,7 @@ namespace Blackjack
             int output = 0;
             foreach (Card i in hand)
             {
-                output += i.realValue;
+                output += i.blackjackValue;
             }
             return (output);
         }
@@ -311,7 +309,7 @@ namespace Blackjack
             name = _name;
         }
 
-        public override void Wants_card(Deck deck, ConsoleKeyInfo notUsed)
+        public override void Wants_card(Deck deck)
         {
             if (this.Sum() < 17)
             {

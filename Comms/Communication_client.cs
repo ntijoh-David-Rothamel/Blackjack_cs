@@ -16,7 +16,7 @@ namespace Blackjack
 
         public Communication_client()
         {
-            Console.WriteLine("Comm");   
+            //Console.WriteLine("Comm");   
             this.Communicate("");
         }
         public Communication_client(string adress)
@@ -43,28 +43,29 @@ namespace Blackjack
             //Therefore it will not continue to the while loop
             //Until ConnectAsync is done
 
+            this.Receiver();
             this.Send_message("Hello World!");
         }
 
         public async void Send_message(string _message)
         {
-            while (true)//While for communicating with other computer
-            {
+
                 // Send message.
                 var message = _message; //Message
                 var messageBytes = Encoding.UTF8.GetBytes(message); //maps message to bytes
                 _ = await this.client.SendAsync(messageBytes, SocketFlags.None); //Sends message over and waits for signal that it is done
-                Console.WriteLine($"Socket client sent message: \"{message}\""); //prints to console
-
+                //Console.WriteLine($"Socket client sent message: \"{message}\""); //prints to console
+            while (true)//While for communicating with other computer
+            {
                 // Receive ack. Acknowledgment
                 var buffer = new byte[1_024]; //Don't know
                 var received = await this.client.ReceiveAsync(buffer, SocketFlags.None);//preps for message?
                 var response = Encoding.UTF8.GetString(buffer, 0, received);//maps bytes to something readable
-                if (response == "<|ACK|>") //If I get answer print answer to console
-                {
-                    Console.WriteLine(
-                        $"Socket client received acknowledgment: \"{response}\"");
-                }
+               // if (response == "<|ACK|>") //If I get answer print answer to console
+               // {
+               //     Console.WriteLine(
+               //         $"Socket client received acknowledgment: \"{response}\"");
+               // }
                 // Sample output:
                 //     Socket client sent message: "Hi friends 👋!<|EOM|>"
                 //     Socket client received acknowledgment: "<|ACK|>"
@@ -81,7 +82,7 @@ namespace Blackjack
                 var message = _message; //Message
                 var messageBytes = Encoding.UTF8.GetBytes(message); //maps message to bytes
                 _ = await this.client.SendAsync(messageBytes, SocketFlags.None); //Sends message over and waits for signal that it is done
-                Console.WriteLine($"Socket client sent message: \"{message}\""); //prints to console
+                //Console.WriteLine($"Socket client sent message: \"{message}\""); //prints to console
 
                 // Receive ack. Acknowledgment
                 var buffer = new byte[1_024]; //Don't know
@@ -89,15 +90,28 @@ namespace Blackjack
                 var response = Encoding.UTF8.GetString(buffer, 0, received);//maps bytes to something readable
                 if (response == "<|ACK|>") //If I get answer print answer to console
                 {
-                    Console.WriteLine(
-                        $"Socket client received acknowledgment: \"{response}\"");
+                    //Console.WriteLine(
+                    //    $"Socket client received acknowledgment: \"{response}\"");
                 }
                 // Sample output:
                 //     Socket client sent message: "Hi friends 👋!<|EOM|>"
                 //     Socket client received acknowledgment: "<|ACK|>"
             }
         }
-
+        //Used for receiving messages from communication server
+        public async void Receiver()
+        {
+            while (true)
+            {
+                var buffer = new byte[1_024]; //Don't know
+                var received = await this.client.ReceiveAsync(buffer, SocketFlags.None);//preps for message?
+                var response = Encoding.UTF8.GetString(buffer, 0, received);//maps bytes to something readable
+                if (response != "<|ACK|>") //If I get answer print answer to console
+                {
+                    Console.WriteLine(response);
+                }
+            }
+        }
         public void Shutdown()
         {
             this.client.Shutdown(SocketShutdown.Both);
