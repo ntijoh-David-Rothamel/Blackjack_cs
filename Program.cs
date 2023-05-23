@@ -1,6 +1,6 @@
+using Blackjack.Comms;
 using System;
 using System.Collections.Generic;
-using Blackjack.Comms;
 using System.Runtime.InteropServices;
 
 namespace Blackjack
@@ -10,8 +10,6 @@ namespace Blackjack
 
         static void Main(string[] args)
         {
-            
-
             Program.AllocConsole();
             Game game = new(1, 2);
             while (true)
@@ -34,11 +32,12 @@ namespace Blackjack
         readonly Player[] players;
         readonly Deck deck;
         public ConsoleKeyInfo keyInfo;
-        public Communication_client com = new();
         public Communication_server server;
         public Game(int amount_player, int decks)
         {
-            server = new(com);
+            server = new();
+            while (!server.done) { }
+            Console.WriteLine("continued");
             players = this.Player_creater(amount_player);
             deck = new Deck(decks);
             this.Loop();
@@ -47,10 +46,11 @@ namespace Blackjack
         private Player[] Player_creater(int amount)
         {
             Player[] temp = new Player[amount + 1];
+            Player.server = server;
 
             for (int i = 0; i < (temp.Length - 1); i++)
             {
-                temp[i] = new Player("Player " + (i + 1), this.server);
+                temp[i] = new Player("Player " + (i + 1));
             }
 
             temp[^1] = new Ai("AI");
@@ -108,10 +108,12 @@ namespace Blackjack
         private void Mid()
         {
             bool loop = true;
-            while (loop)
+            int x = 0;
+            while (loop && x < 5)
             {
                 loop = false;
                 this.Print_hands();
+                //Add something that sends the hand of player and ai
                 foreach (Player i in this.players)
                 {
                     i.Wants_card(this.deck);
@@ -120,13 +122,16 @@ namespace Blackjack
                         loop = true;
                     }
                 }
+                x++;
             }
+            Console.WriteLine("loop done");
         }
 
         private void End()
         {
             //Print winner name on screen using Check_winner()
             Console.Write(this.Check_winner());
+            server.SendWinner(this.Check_winner());
         }
 
         private void Loop()
@@ -159,7 +164,7 @@ namespace Blackjack
             }
         }
 
-        
+
     }
 
     public class Deck
@@ -225,13 +230,7 @@ namespace Blackjack
         public List<Card> hand = new List<Card>();
         public string name;
         public bool wants = true;
-        private Communication_server server = null;
-
-        public Player(string _name, Communication_server server_)
-        {
-            name = _name;
-            server = server_;
-        }
+        public static Communication_server server;
 
         public Player(string _name)
         {
@@ -240,6 +239,9 @@ namespace Blackjack
 
         public void Print_hand()
         {
+            server.SendHand(this.Hand_to_code());
+
+            /*
             Console.WriteLine(this.name);
             foreach (Card i in this.hand)
             {
@@ -247,6 +249,55 @@ namespace Blackjack
             }
             Console.WriteLine(this.Sum());
             Console.WriteLine("");
+            */
+        }
+
+        private String Hand_to_code()
+        {
+            String code = " ";
+            foreach (Card i in this.hand)
+            {
+                switch (i.color)
+                {
+                    case "Spade":
+                        code += "s";
+                        break;
+                    case "Heart":
+                        code += "h";
+                        break;
+                    case "Club":
+                        code += "c";
+                        break;
+                    case "Diamond":
+                        code += "d";
+                        break;
+                }
+
+                switch (i.value)
+                {
+                    case 1:
+                        code += "a";
+                        break;
+                    case 13:
+                        code += "k";
+                        break;
+                    case 12:
+                        code += "q";
+                        break;
+                    case 11:
+                        code += "j";
+                        break;
+                    case 10:
+                        code += "t";
+                        break;
+                    default:
+                        code += i.value;
+                        break;
+                }
+            }
+            code += " ";
+            code += this.Sum();
+            return code;
         }
 
         public void Take_card(Deck deck)
@@ -262,8 +313,12 @@ namespace Blackjack
         {
             if (this.Sum() < 21)
             {
-                String confirmation = this.server.AskForInput("Do you want a card? (y/n)");
-
+                String confirmation = null;
+                while (confirmation != "y" && confirmation != "n")
+                {
+                    confirmation = Player.server.AskForInput();
+                }
+                //Problem is here
                 if (confirmation == "y")
                 {
                     this.Take_card(deck);
@@ -272,6 +327,7 @@ namespace Blackjack
                 {
                     wants = false;
                 }
+                confirmation = null;
             }
         }
 

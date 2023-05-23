@@ -1,13 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Net;
 using System.Net.Sockets;
-using System.Diagnostics;
-using System.Data;
-using Blackjack;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace Blackjack.Comms
 {
@@ -15,13 +10,12 @@ namespace Blackjack.Comms
     {
         //Får jag göra så?
         public Socket handler_ = null;
-        public Communication_client Client = null;
-        public bool read_response = false;
         public String response = null;
+        public bool done = false;
+        public String old_response = null;
 
-        public Communication_server(Communication_client _Client)
+        public Communication_server()
         {
-            Client = _Client;
             this.Server("");
         }
 
@@ -33,8 +27,8 @@ namespace Blackjack.Comms
         private async void Server(String adress)
         {
             var hostName = Dns.GetHostName();
-            IPHostEntry ipHostInfo = await Dns.GetHostEntryAsync(hostName);
-            //IPHostEntry ipHostInfo = await Dns.GetHostEntryAsync(adress); //maps adress to an ip-adress
+            //IPHostEntry ipHostInfo = await Dns.GetHostEntryAsync(hostName);
+            IPHostEntry ipHostInfo = await Dns.GetHostEntryAsync(hostName); //maps adress to an ip-adress
             IPAddress ipAddress = ipHostInfo.AddressList[0]; //saves the ip-adress
 
             IPEndPoint ipEndPoint = new(ipAddress, 8080); //Adds ip-adress to a port
@@ -46,10 +40,16 @@ namespace Blackjack.Comms
 
             listener.Bind(ipEndPoint);
             listener.Listen(100);
-
-            var handler = await listener.AcceptAsync();
-            handler_ = handler;
-
+            while (true)
+            {
+                var handler = await listener.AcceptAsync();
+                if (handler != null)
+                {
+                    handler_ = handler;
+                    done = true;
+                    break;
+                }
+            }
             this.ServerSetUpLoop();
         }
 
@@ -70,15 +70,10 @@ namespace Blackjack.Comms
 
                     var ackMessage = "<|ACK|>";
                     var echoBytes = Encoding.UTF8.GetBytes(ackMessage);
-                    await handler_.SendAsync(echoBytes, 0);
+                    //await handler_.SendAsync(echoBytes, 0);
                     //Console.WriteLine(
                     //    $"Socket server sent acknowledgment: \"{ackMessage}\"");
 
-                }
-
-                if ((response.IndexOf("y") > -1) || (response.IndexOf("n") > -1))
-                {
-                    read_response = true;
                 }
                 // Sample output:
                 //    Socket server received message: "Hi friends 👋!"
@@ -86,20 +81,37 @@ namespace Blackjack.Comms
             }
         }
 
-        private async void SendMessage(String message)
+        private async Task<bool> SendMessage(String message)
         {
+            Console.WriteLine("Sending message");
             var echoBytes = Encoding.UTF8.GetBytes(message);
             await handler_.SendAsync(echoBytes, 0);
-            //Console.WriteLine(
-            //    $"Socket server sent message: \"{message}\"");
+            Console.WriteLine(
+                $"Socket server sent message: \"{message}\"");
+            return true;
         }
 
-        public String AskForInput(String input)
+        public String AskForInput()
         {
-            this.SendMessage(input);
-            Client.Send_message();
-            //Console.WriteLine("Repsonse is: " + response);
-            return response;
+            Console.WriteLine("Asking for input");
+            Task.Delay(1000).Wait();
+            this.SendMessage("input").Wait();
+            while (response == old_response) { }
+            Console.WriteLine("Repsonse is: " + response);
+            old_response = response;
+            return response.Substring(0, 1);
+        }
+        public void SendHand(String hand_in_code)
+        {
+            Console.WriteLine("Sending hand");
+            this.SendMessage("c" + hand_in_code).Wait();
+            Console.WriteLine("Sent hand");
+        }
+        public void SendWinner(String winner)
+        {
+            Console.WriteLine("Sending winner");
+            this.SendMessage("w" + winner).Wait();
+            Console.WriteLine("Sent winner");
         }
     }
 }
