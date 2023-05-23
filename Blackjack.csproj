@@ -9,4 +9,8 @@
     <StartupObject>Blackjack.Program</StartupObject>
   </PropertyGroup>
 
+  <ItemGroup>
+    <Compile Remove="Comms\Communication_client.cs" />
+  </ItemGroup>
+
 </Project>

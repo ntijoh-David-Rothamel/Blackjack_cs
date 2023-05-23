@@ -106,7 +106,10 @@ namespace Blackjack
                 var buffer = new byte[1_024]; //Don't know
                 var received = await this.client.ReceiveAsync(buffer, SocketFlags.None);//preps for message?
                 var response = Encoding.UTF8.GetString(buffer, 0, received);//maps bytes to something readable
-                if (response != "<|ACK|>") //If I get answer print answer to console
+                if (response == "i")
+                {
+                    this.Send_message();
+                } else
                 {
                     Console.WriteLine(response);
                 }
